@@ -7,7 +7,7 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Shop</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@200:500&display=swap');
+        @import url('https://googleapis.com');
 
         * {
             margin: 0;
@@ -51,12 +51,12 @@
             font-weight: 500;
             cursor: pointer;
             transition: all 500ms ease;
-            color: var(--tg-theme-button-color);
-            background: var(--tg-theme-button-text-color);
+            color: var(--tg-theme-button-text-color);
+            background: var(--tg-theme-button-color);
         }
 
         button:hover {
-            background: var(--tg-theme-secondary-bg-color);
+            opacity: 0.8;
         }
 
         #form {
@@ -77,6 +77,13 @@
         input:focus {
             border-color: #db5d5d;
         }
+
+        /* Стиль для текста ошибок */
+        #error {
+            color: red;
+            font-weight: 500;
+            margin-top: 15px;
+        }
     </style>
 </head>
 <body>
@@ -86,13 +93,20 @@
         <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Accusantium ipsum magni, molestias</p>
         <button id="buy">Купить</button>
     </div>
-    <form id="form">
+    
+    <!-- Добавили onsubmit="return false;", чтобы форма не перезагружала страницу -->
+    <form id="form" onsubmit="return false;">
         <h1>Оформление покупки</h1>
         <input type="text" placeholder="Имя" id="user_name">
         <input type="text" placeholder="Email" id="user_email">
         <input type="text" placeholder="Телефон" id="user_phone">
+        
+        <!-- Сюда теперь будет выводиться innerText ошибки -->
+        <div id="error"></div> 
+        
         <button id="order">Оформить</button>
     </form>
+
     <script src="https://telegram.org/js/telegram-web-app.js?63"></script>
     <script>
         let tg = window.Telegram.WebApp;
@@ -103,14 +117,25 @@
         buy.addEventListener('click', () =>{
             document.getElementById("main").style.display = "none";
             document.getElementById("form").style.display = "block";
-            document.getElementById("user_name").value = tg.initDataUnsafe.user.first_name + " " + tg.initDataUnsafe.user.last_name;
+            
+            // Безопасное получение имени и фамилии (не сломается в обычном браузере)
+            let user = tg.initDataUnsafe?.user;
+            if (user) {
+                let firstName = user.first_name || "";
+                let lastName = user.last_name || "";
+                document.getElementById("user_name").value = (firstName + " " + lastName).trim();
+            }
         });
 
-        order.addEventListener("click", () => {
+        // Добавили event (e) для отмены стандартного поведения кнопки
+        order.addEventListener("click", (e) => {
+            e.preventDefault(); // Предотвращает перезагрузку страницы
+            
             document.getElementById("error").innerText = '';
             let name = document.getElementById("user_name").value;
             let email = document.getElementById("user_email").value;
             let phone = document.getElementById("user_phone").value;
+            
             if (name.length < 5){
                 document.getElementById("error").innerText = 'Ошибка в имени';
                 return;
@@ -129,11 +154,14 @@
                 email: email,
                 phone: phone
             }
+            
+            // Внимание: sendData работает ТОЛЬКО если Web App открыто через KeyboardButton / ReplyButton.
+            // Если оно открыто через Inline-кнопку, нужно использовать tg.CloudStorage или отправку через API.
             tg.sendData(JSON.stringify(data));
-
+            
+            // Закрываем окно
             tg.close();
         });
-
     </script>
 </body>
 </html>
